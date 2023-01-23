@@ -1,5 +1,5 @@
 {
-  "name": "koishi-plugin-editfile",
+  "name": "koishi-plugin-editor",
   "description": "在控制台里编辑文件",
   "version": "1.0.0",
   "main": "lib/index.js",
@@ -19,6 +19,7 @@
     "koishi": "^4.11.2"
   },
   "dependencies": {
+    "is-path-inside": "^4.0.0",
     "monaco-editor": "^0.34.1"
   },
   "author": "HuanLin <linsmc@126.com>"

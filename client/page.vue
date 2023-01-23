@@ -18,7 +18,7 @@ import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
 import CssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import HtmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 
-
+import rename from "./icons/rename.vue"
 import addFolder from "./icons/addFolder.vue"
 
 window.MonacoEnvironment = {
@@ -39,6 +39,8 @@ var editingPath = ref("开始页");
 var selectedNode = reactive({
     element: null,
     path: null,
+    type: null,
+    name: null
 })
 
 const isDark = ref(document.getElementsByTagName("html")[0].className.indexOf("dark") != -1)
@@ -100,6 +102,14 @@ const handleNodeClick = async (data,_node,_treeNode,event) => {
         }
         return findFolderContainer(element.parentElement);
     }
+
+    selectedNode.type = data.type
+    selectedNode.name = data.label
+    if(selectedNode.element != null) selectedNode.element.style.backgroundColor = ""
+    selectedNode.element = findFolderContainer(event.srcElement);
+    selectedNode.element.style.backgroundColor = "var(--bg2)"
+    selectedNode.path = data.path
+
     if (data.type == "empty") {
         ElMessage({
             message: '该目录为空',
@@ -110,11 +120,20 @@ const handleNodeClick = async (data,_node,_treeNode,event) => {
         // console.log(data.path);
         editingPath.value = data.path
         var content = await send("editfile-getFile", data.path)
+        if(content && content.message) {
+            ElMessage({
+                message: content.message,
+                type: 'error',
+            })
+            return;
+        }
+        // @ts-ignore
         monacoInstance.setValue(content)
         const modelInList = monaco.editor.getModel(monaco.Uri.file(data.path))
         // 没注册过这个model
         if (modelInList == null) {
             const model = monaco.editor.createModel(
+            // @ts-ignore
                 content,
                 undefined,
                 monaco.Uri.file(data.path) // uri
@@ -123,11 +142,6 @@ const handleNodeClick = async (data,_node,_treeNode,event) => {
         } else {
             monacoInstance.setModel(modelInList)
         }
-    } else {
-        if(selectedNode.element != null) selectedNode.element.style.backgroundColor = ""
-        selectedNode.element = findFolderContainer(event.srcElement);
-        selectedNode.element.style.backgroundColor = "var(--bg2)"
-        selectedNode.path = data.path
     }
 }
 
@@ -170,20 +184,31 @@ const opemnContextMenu = (event,data) => {
 }
 
 var addFolderValueInput = ref('')
+var renameValueInput = ref('')
 const controls = {
     async addFolder() {
         try {
-            await send("editfile-addFolder",{
+            const res = await send("editfile-addFolder",{
                 path: selectedNode.path,
                 name: addFolderValueInput.value
             })
+            
+            if(res && res.message) {
+                ElMessage({
+                    message: res.message,
+                    type: 'error',
+                })
+                return;
+            }
             ElMessage({
                 message: '创建文件夹成功',
                 type: 'success',
             })
             reloadTreeData();
         } catch(e) {
-            if(e.indexOf("file already exists") != -1) {
+            console.log(e);
+            
+            if(e?.indexOf("file already exists") != -1) {
                 ElMessage({
                     message: '创建文件夹失败, 文件夹已存在',
                     type: 'error',
@@ -195,6 +220,50 @@ const controls = {
                 message: '创建文件夹失败<br>'+e,
                 type: 'error',
             })
+        } finally {
+            reloadTreeData();
+        }
+    },
+    async rename() {
+        console.log({
+            path: selectedNode.path,
+            from: selectedNode.name,
+            to: renameValueInput.value
+        });
+        try {
+            const res = await send("editfile-rename",{
+                path: selectedNode.path,
+                from: selectedNode.name,
+                to: renameValueInput.value
+            })
+            if(res && res.message) {
+                ElMessage({
+                    message: res.message,
+                    type: 'error',
+                })
+                return;
+            }
+            ElMessage({
+                message: '重命名成功',
+                type: 'success',
+            })
+        } catch(e) {
+            console.log(e);
+            
+            if(e?.indexOf("file already exists") != -1) {
+                ElMessage({
+                    message: '重命名失败, 目标已存在',
+                    type: 'error',
+                })
+                return;
+            }
+            ElMessage({
+                dangerouslyUseHTMLString: true,
+                message: '重命名失败<br>'+e,
+                type: 'error',
+            })
+        } finally {
+            reloadTreeData();
         }
     }
 }
@@ -210,21 +279,38 @@ const controls = {
                     <strong style="font-family: Segoe WPC,Segoe UI,sans-serif;margin-left: 4px">KOISHI</strong>
                     <div class="btn-group">
                         <el-popover placement="bottom" trigger="click" popper-class="addFoloder-popover">
-                        <template #reference>
-                            <div class="btn" title="新建文件夹">
-                                <addFolder />
+                            <template #reference>
+                                <div class="btn" title="新建文件夹">
+                                    <addFolder />
+                                </div>
+                            </template>
+                            <div v-if="selectedNode.path != null && selectedNode.type == `folder`">
+                                <div>正在向 {{ selectedNode.path.replace("./","") }} 目录下新建文件夹</div>
+                                <div style="display: flex">
+                                    <el-input v-model="addFolderValueInput" placeholder="请输入文件夹名称" style="width: 80%"/>
+                                    <el-button  style="width: 19%;margin-left: 6px" @click="controls.addFolder">确定</el-button>
+                                </div>
                             </div>
-                        </template>
-                        <div v-if="selectedNode.path != null">
-                            <div>正在向 {{ selectedNode.path }} 目录下新建文件夹</div>
-                            <div style="display: flex">
-                                <el-input v-model="addFolderValueInput" placeholder="请输入文件夹名称" style="width: 80%"/>
-                                <el-button  style="width: 19%;margin-left: 6px" @click="controls.addFolder">确定</el-button>
+                            <div v-else>
+                                暂未选择文件夹
                             </div>
-                        </div>
-                        <div v-else>
-                            暂未选择文件夹
-                        </div>
+                        </el-popover>
+                        <el-popover placement="bottom" trigger="click" popper-class="addFoloder-popover">
+                            <template #reference>
+                                <div class="btn" title="重命名">
+                                    <rename/>
+                                </div>
+                            </template>
+                            <div v-if="selectedNode.path != null">
+                                <div>正在重命名 {{ selectedNode.path.replace("./","") }}</div>
+                                <div style="display: flex">
+                                    <el-input v-model="renameValueInput" placeholder="请输入新名称" style="width: 80%"/>
+                                    <el-button  style="width: 19%;margin-left: 6px" @click="controls.rename">确定</el-button>
+                                </div>
+                            </div>
+                            <div v-else>
+                                暂未选择文件夹
+                            </div>
                         </el-popover>
                     </div>
                 </div>
