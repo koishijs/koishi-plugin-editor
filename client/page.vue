@@ -120,8 +120,10 @@ const handleNodeClick = async (data,_node,_treeNode,event) => {
         // console.log(data.path);
         editingPath.value = data.path
         var content = await send("editfile-getFile", data.path)
+        // @ts-ignore
         if(content && content.message) {
             ElMessage({
+            // @ts-ignore
                 message: content.message,
                 type: 'error',
             })
@@ -410,7 +412,7 @@ const controls = {
 
 @font-face {
     font-family: Harmony;
-    src: url(./fonts/HarmonyOS_Sans_SC_Regular.ttf);
+    src: url(https://huggingface.co/datasets/HuanLin/Own/resolve/main/HarmonyOS_Sans_SC_Regular.ttf);
 }
 
 .view-line {

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
     "outDir": "lib",
-    "target": "es2020",
+    "rootDir": "src",
+    "target": "esnext",
     "module": "commonjs",
     "declaration": true,
     "composite": true,
@@ -10,8 +10,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "jsx": "react-jsx",
-    "jsxImportSource": "@satorijs/element",
+    "strictBindCallApply": true,
   },
   "include": [
     "src",

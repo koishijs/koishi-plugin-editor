@@ -8,11 +8,9 @@ import { mkdir, readFile, rename, rm, rmdir, writeFile } from 'fs/promises'
 import isPathInside from "is-path-inside"
 import rn from './rn'
 
-export const name = 'spring-festival-ui'
+export const name = 'editor'
 export const usage = `
-只需要启用此插件即可
-
-警告: 在停用插件后将会刷新控制台(并不会重启 Koishi), 请及时保存
+只需要启用此插件即可 提供了一个嵌入在控制台 Manaco Editor(Vscode)
 `
 
 interface saveFileEventsArg {
